@@ -1,0 +1,221 @@
+CREATE DATABASE vidyanidhi_university;
+USE vidyanidhi_university;
+
+CREATE TABLE college (
+    college_id INT PRIMARY KEY AUTO_INCREMENT,
+    college_name VARCHAR(100) NOT NULL,
+    address VARCHAR(200)
+);
+
+CREATE TABLE degree (
+    degree_id INT PRIMARY KEY AUTO_INCREMENT,
+    degree_name VARCHAR(100) NOT NULL,
+    duration INT
+);
+
+CREATE TABLE student (
+    exam_seat_no INT PRIMARY KEY,
+    student_name VARCHAR(100) NOT NULL,
+    college_id INT,
+    degree_id INT,
+    gender VARCHAR(10),
+    mobile_no VARCHAR(15),
+    email VARCHAR(100),
+    FOREIGN KEY (college_id) REFERENCES college(college_id),
+    FOREIGN KEY (degree_id) REFERENCES degree(degree_id)
+);
+
+CREATE TABLE subject (
+    subject_id INT PRIMARY KEY AUTO_INCREMENT,
+    subject_name VARCHAR(100) NOT NULL,
+    degree_id INT,
+    credits INT,
+    FOREIGN KEY (degree_id) REFERENCES degree(degree_id)
+);
+
+CREATE TABLE subject_section (
+    section_id INT PRIMARY KEY AUTO_INCREMENT,
+    subject_id INT,
+    section_name VARCHAR(50),
+    FOREIGN KEY (subject_id) REFERENCES subject(subject_id)
+);
+
+CREATE TABLE exam_center (
+    center_id INT PRIMARY KEY AUTO_INCREMENT,
+    center_name VARCHAR(100),
+    address VARCHAR(200),
+    capacity INT
+);
+
+CREATE TABLE exam_schedule (
+    schedule_id INT PRIMARY KEY AUTO_INCREMENT,
+    subject_id INT,
+    center_id INT,
+    exam_date DATE,
+    exam_time TIME,
+    total_students INT,
+    FOREIGN KEY (subject_id) REFERENCES subject(subject_id),
+    FOREIGN KEY (center_id) REFERENCES exam_center(center_id)
+);
+
+CREATE TABLE student_subject (
+    student_subject_id INT PRIMARY KEY AUTO_INCREMENT,
+    exam_seat_no INT,
+    subject_id INT,
+    FOREIGN KEY (exam_seat_no) REFERENCES student(exam_seat_no),
+    FOREIGN KEY (subject_id) REFERENCES subject(subject_id)
+);
+
+CREATE TABLE result (
+    result_id INT PRIMARY KEY AUTO_INCREMENT,
+    exam_seat_no INT,
+    subject_id INT,
+    marks_obtained DECIMAL(5,2),
+    grade CHAR(2),
+    status VARCHAR(20),
+    FOREIGN KEY (exam_seat_no) REFERENCES student(exam_seat_no),
+    FOREIGN KEY (subject_id) REFERENCES subject(subject_id)
+);
+
+CREATE TABLE exam_fee (
+    fee_id INT PRIMARY KEY AUTO_INCREMENT,
+    exam_seat_no INT,
+    amount DECIMAL(10,2),
+    payment_date DATE,
+    payment_status VARCHAR(20),
+    FOREIGN KEY (exam_seat_no) REFERENCES student(exam_seat_no)
+);
+
+CREATE TABLE expenditure (
+    expenditure_id INT PRIMARY KEY AUTO_INCREMENT,
+    center_id INT,
+    expense_type VARCHAR(100),
+    amount DECIMAL(10,2),
+    expense_date DATE,
+    FOREIGN KEY (center_id) REFERENCES exam_center(center_id)
+);
+
+INSERT INTO college(college_name,address)
+VALUES
+('Vidyanidhi College','Mumbai'),
+('KJ Somaiya College','Mumbai'),
+('Thakur College','Mumbai');
+
+INSERT INTO degree(degree_name,duration)
+VALUES
+('BSc IT',3),
+('BCom',3),
+('BMS',3);
+
+INSERT INTO student
+VALUES
+(1001,'Rahul Sharma',1,1,'Male','9876543210','rahul@gmail.com'),
+(1002,'Priya Patel',2,2,'Female','9876543211','priya@gmail.com'),
+(1003,'Amit Singh',3,3,'Male','9876543212','amit@gmail.com');
+
+INSERT INTO subject(subject_name,degree_id,credits)
+VALUES
+('Database Management System',1,4),
+('Financial Accounting',2,4),
+('Business Management',3,4);
+
+INSERT INTO subject_section(subject_id,section_name)
+VALUES
+(1,'A'),
+(2,'A'),
+(3,'B');
+
+INSERT INTO exam_center(center_name,address,capacity)
+VALUES
+('Andheri Center','Andheri',500),
+('Borivali Center','Borivali',600),
+('Thane Center','Thane',700);
+
+INSERT INTO exam_schedule
+(subject_id,center_id,exam_date,exam_time,total_students)
+VALUES
+(1,1,'2026-07-10','10:00:00',200),
+(2,2,'2026-07-11','10:00:00',180),
+(3,3,'2026-07-12','10:00:00',150);
+
+INSERT INTO student_subject(exam_seat_no,subject_id)
+VALUES
+(1001,1),
+(1002,2),
+(1003,3);
+
+INSERT INTO result
+(exam_seat_no,subject_id,marks_obtained,grade,status)
+VALUES
+(1001,1,85,'A','Pass'),
+(1002,2,72,'B','Pass'),
+(1003,3,40,'C','Pass');
+
+INSERT INTO exam_fee
+(exam_seat_no,amount,payment_date,payment_status)
+VALUES
+(1001,1000,'2026-06-01','Paid'),
+(1002,1000,'2026-06-01','Paid'),
+(1003,1000,'2026-06-01','Pending');
+
+INSERT INTO expenditure
+(center_id,expense_type,amount,expense_date)
+VALUES
+(1,'Printing',5000,'2026-07-01'),
+(2,'Invigilation',7000,'2026-07-01'),
+(3,'Stationery',3000,'2026-07-01');
+
+SELECT s.student_name,
+       sub.subject_name,
+       r.marks_obtained,
+       r.grade
+FROM student s
+JOIN result r
+ON s.exam_seat_no = r.exam_seat_no
+JOIN subject sub
+ON r.subject_id = sub.subject_id;
+
+SELECT sub.subject_name,
+       COUNT(ss.exam_seat_no) AS total_students
+FROM subject sub
+JOIN student_subject ss
+ON sub.subject_id = ss.subject_id
+GROUP BY sub.subject_name;
+
+SELECT center_name,total_students
+FROM exam_schedule es
+JOIN exam_center ec
+ON es.center_id = ec.center_id;
+
+SELECT s.student_name,
+       r.marks_obtained
+FROM student s
+JOIN result r
+ON s.exam_seat_no = r.exam_seat_no
+ORDER BY r.marks_obtained DESC;
+
+SELECT SUM(amount) AS total_collection
+FROM exam_fee
+WHERE payment_status='Paid';
+
+SELECT s.student_name,
+       ef.amount
+FROM student s
+JOIN exam_fee ef
+ON s.exam_seat_no=ef.exam_seat_no
+WHERE ef.payment_status='Pending';
+
+SELECT SUM(amount) AS total_expenditure
+FROM expenditure;
+
+SELECT
+(
+    SELECT SUM(amount)
+    FROM exam_fee
+    WHERE payment_status='Paid'
+)
+-
+(
+    SELECT SUM(amount)
+    FROM expenditure
+) AS profit_or_loss;
